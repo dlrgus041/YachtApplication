@@ -25,7 +25,7 @@ object U {
 
     val score = Array(2) {Array(12) {0} }
 
-    fun random() = (1 + 6 * Math.random()).toInt().toByte()
+    fun random() = 1 + (6 * Math.random()).toInt()
 
 //    fun dialog(context: Context, title: String, message: String, error: Boolean): AlertDialog {
 //        val ret = AlertDialog.Builder(context).setTitle(title).setMessage(message)
@@ -57,7 +57,6 @@ object U {
             while (true) {
                 when (val int = `in`.read()) {
                     -1 -> throw EOFException()
-                    in 50 .. 59 -> handle(gHdl, 50, int - 50)
                     else -> handle(gHdl, int)
                 }
             }

@@ -38,15 +38,18 @@ class MainActivity: AppCompatActivity() {
                 0 -> {
                     status.text = "서버에 연결 중 입니다..."
                     progress.visibility = View.VISIBLE
+                    name.isEnabled = false
+                    connect.isEnabled = false
+                    connect.text = "대기"
                 }
                 1 -> {
                     U.find()
                     status.text = "대결 상대를 찾고 있습니다..."
-                    connect.isEnabled = false
-                    connect.text = "대기"
                 }
                 2 -> {
                     progress.visibility = View.INVISIBLE
+                    connect.isEnabled = true
+                    connect.text = "연결"
                     startActivity(Intent(this@MainActivity, GameActivity::class.java))
                 }
 
@@ -63,7 +66,7 @@ class MainActivity: AppCompatActivity() {
             U.handle(U.mHdl, 0)
             Thread {
                 try {
-                    val socket = Socket("59.12.69.90", 52196)
+                    val socket = Socket("59.12.69.90", 52190)
                     U.`in` = socket.getInputStream()
                     U.out = socket.getOutputStream()
                     isSocket = true
