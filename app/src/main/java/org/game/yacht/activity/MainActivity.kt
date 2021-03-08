@@ -1,5 +1,6 @@
 package org.game.yacht.activity
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -21,6 +22,14 @@ class MainActivity: AppCompatActivity() {
     private val progress by lazy { findViewById<ProgressBar>(R.id.progress) }
     private var isSocket = false
 
+    private val exitMain by lazy {
+        AlertDialog.Builder(this).setTitle("경고").setMessage("종료하시겠습니까?")
+                .setPositiveButton("예") { _, _ -> super.onBackPressed() }
+                .setNegativeButton("아니오") { _, _ -> }.create()
+    }
+
+    override fun onBackPressed() = exitMain.show()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -29,6 +38,7 @@ class MainActivity: AppCompatActivity() {
             override fun handleMessage(msg: Message) = when (msg.what) {
                 -1 -> {
                     if (isSocket) U.close()
+                    connect.text = "사용할 별명을 입력하고\n'연결' 버튼을 누르세요."
                     connect.isEnabled = true
                     progress.visibility = View.INVISIBLE
                     connect.text = "연결"
@@ -46,7 +56,8 @@ class MainActivity: AppCompatActivity() {
                     U.find()
                     status.text = "대결 상대를 찾고 있습니다..."
                 }
-                2 -> {
+                2, 3 -> {
+                    U.player = msg.what - 2
                     progress.visibility = View.INVISIBLE
                     connect.isEnabled = true
                     connect.text = "연결"
