@@ -48,9 +48,9 @@ object U {
             }
         } catch (_: IOException) {
             close()
-            handle(gHdl, 201)
+//            handle(gHdl, 201)
         }
-    }.start()
+    }.also {it.isDaemon = true}.start()
 
     fun close() {
         `in`.close()

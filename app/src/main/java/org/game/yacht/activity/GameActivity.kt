@@ -23,8 +23,6 @@ const val S_STRAIGHT = 1
 class GameActivity: AppCompatActivity() {
 
     private val scoreboard by lazy { findViewById<LinearLayout>(R.id.scoreboard) }
-    private val score1 by lazy { findViewById<TableLayout>(R.id.score1) }
-    private val score2 by lazy { findViewById<TableLayout>(R.id.score2) }
     private val notice by lazy { findViewById<TextView>(R.id.notice) }
     private val fixed by lazy { findViewById<LinearLayout>(R.id.fixed) }
     private val roll by lazy { findViewById<LinearLayout>(R.id.roll) }
@@ -32,12 +30,19 @@ class GameActivity: AppCompatActivity() {
     private val btnConfirm by lazy { findViewById<Button>(R.id.btnConfirm) }
     private val time by lazy { findViewById<CircleProgressBar>(R.id.time) }
 
+    private val level = arrayOf(
+            "", "Aces", "Dueces", "Threes", "Fours", "Fives", "Sixes",
+            "Choice", "4 of a Kind", "Full House", "S. Straight", "L. Straight", "Yacht"
+    )
+
+    private val scoreDialog by lazy { AlertDialog.Builder(this).setTitle("확인")
+            .setNegativeButton("아니오") {_, _ -> }.create() }
+
     private val exitGame by lazy {
         AlertDialog.Builder(this).setTitle("경고").setMessage("자동 패배 처리 됩니다. 게속 하시겠습니까?")
                 .setPositiveButton("예") { _, _ ->
                     U.send(200)
                     U.close()
-                    super.onBackPressed()
                 }
                 .setNegativeButton("아니오") { _, _ -> }.create()
     }
@@ -50,9 +55,36 @@ class GameActivity: AppCompatActivity() {
     private var isThrowable = false
     private var remain = 3
 
-    private fun setScore(table: TableLayout, category: Int, value: Int, opponent: Boolean = false) {
+    private fun initialize() {
+        remain = 3
+        for (i in 0 .. 4) {
+            fixed[i].visibility = View.GONE
+            with (roll[i] as ImageView) {
+                setImageResource(img[0])
+                visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun initScore(opponent: Boolean = false) {
+        for (board in 0..1) {
+            for (index in 1..6) setScore(board, index, opponent, true)
+        }
+    }
+
+    private fun hintScore(table: TableLayout, category: Int, value: Int, opponent: Boolean) {
         ((table[if (opponent) (U.player + 1) % 2 else U.player] as TableRow)[category] as TextView).hint = value.toString()
     }
+
+    private fun setScore(board: Int, index: Int, opponent: Boolean = false, init : Boolean = false) =
+            with(((scoreboard[board] as TableLayout)[if (opponent) 3 - U.player else U.player] as TableRow)[index] as TextView) {
+                text = if (init) "0" else {
+                    response(if (opponent) 70 else (100 + 10 * board + index))
+                    initialize()
+                    isMyTurn = !isMyTurn
+                    hint
+                }
+            }
 
     private fun judge(): Int {
         var ret = 0
@@ -73,23 +105,21 @@ class GameActivity: AppCompatActivity() {
     }
 
     private fun calculate(opponent: Boolean = false) {
-        with(score1) {
-            for (i in 1..6) setScore(this, i, dice.filter { it == i }.sum(), opponent)
+        with(scoreboard[0] as TableLayout) {
+            for (i in 1..6) hintScore(this, i, dice.filter { it == i }.sum(), opponent)
         }
-
         val mask = judge()
-        with(score2) {
-            setScore(this, 1, dice.sum(), opponent)
-            setScore(this, 2, if (mask and FOUR_CARD != 0) dice.sum() else 0, opponent)
-            setScore(this, 3, if (mask and FULL_HOUSE != 0) dice.sum() else 0, opponent)
-            setScore(this, 4, if (mask and S_STRAIGHT != 0) 15 else 0, opponent)
-            setScore(this, 5, if (mask and L_STRAIGHT != 0) 30 else 0, opponent)
-            setScore(this, 6, if (mask and YACHT != 0) dice.sum() else 0, opponent)
+        with(scoreboard[1] as TableLayout) {
+            hintScore(this, 1, dice.sum(), opponent)
+            hintScore(this, 2, if (mask and FOUR_CARD != 0) dice.sum() else 0, opponent)
+            hintScore(this, 3, if (mask and FULL_HOUSE != 0) dice.sum() else 0, opponent)
+            hintScore(this, 4, if (mask and S_STRAIGHT != 0) 15 else 0, opponent)
+            hintScore(this, 5, if (mask and L_STRAIGHT != 0) 30 else 0, opponent)
+            hintScore(this, 6, if (mask and YACHT != 0) dice.sum() else 0, opponent)
         }
     }
 
-    private fun clearDice(first: Boolean = false) {
-        if (first) btnScore.isEnabled = true
+    private fun clearDice() {
         for (i in 0 .. 4) {
             with (roll[i] as ImageView) {
                 if (visibility == View.VISIBLE) setImageResource(img[0])
@@ -112,10 +142,12 @@ class GameActivity: AppCompatActivity() {
 
     private fun showAll(first: Boolean = false) = Thread {
         for (i in 0 .. 4) {
+            if (roll[i].visibility != View.VISIBLE) continue
             if (!first) U.send(10 * i + dice[i])
             U.handle(U.gHdl, 10 * i + 7)
-            Thread.sleep(300)
+            Thread.sleep(200)
         }
+        if (!first) U.handle(U.gHdl, 60)
     }.start()
 
     private fun setDice(fix :Boolean, index: Int) {
@@ -131,27 +163,24 @@ class GameActivity: AppCompatActivity() {
         }
     }
 
-    private fun setBtn(`throw`: Boolean, wait: Boolean = false) = with (btnConfirm) {
-        if (`throw`) {
-            notice.text = if (wait) "주사위 눈의 수의 합이 더 큰 사람이 선공입니다."
-            else "주사위를 굴려서 조합을 만드세요."
-            text = "굴린다!"
-            isEnabled = true
-        } else {
-            if (wait) {
-                notice.text = "상대를 기다리는 중..."
-                text = "대기중"
-                isEnabled = false
-                U.send(70)
-            } else {
-                notice.text = "남은 기회 : ${remain}회"
-                text = "선택 완료"
-            }
-        }
+    private fun setBtn() = with (btnConfirm) {
+        notice.text = if (btnScore.isEnabled) "주사위를 굴려서 조합을 만드세요."
+        else "주사위 눈의 합이 더 큰 사람이 선공입니다."
+        text = "굴린다!"
+        isEnabled = true
+    }
+
+    private fun response(code: Int = 255) {
+        notice.text = "상대를 기다리는 중..."
+        btnConfirm.text = "대기중"
+        btnConfirm.isEnabled = false
+        U.send(code)
     }
 
     private fun errAlert(message: String) = AlertDialog.Builder(this).setTitle("알림")
             .setMessage(message).setNeutralButton("확인") { _, _ -> }.create()
+
+    override fun onBackPressed() = exitGame.show()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -165,45 +194,78 @@ class GameActivity: AppCompatActivity() {
                 )
         setContentView(R.layout.activity_game)
 
+        for (board in 0 .. 1) {
+            for (index in 1 .. 6) {
+                    with (((scoreboard[board] as TableLayout)[U.player] as TableRow)[index] as TextView) {
+                        setOnClickListener {
+                            if (isMyTurn && !isThrowable) scoreDialog
+                                    .apply { setTitle("${level[(board + 1) * index]} ${hint}점을 획득하시겠습니까?") }
+                                    .apply { setButton(AlertDialog.BUTTON_POSITIVE, "예") {_, _ -> setScore(board, index) } }
+                                    .show()
+
+                        }
+                    }
+            }
+        }
+
         for (i in 0 .. 6)
             img[i] = resources.getIdentifier("dice$i", "drawable", packageName)
 
         U.gHdl = object : Handler(Looper.getMainLooper()) {
             override fun handleMessage(msg: Message): Unit = when (msg.what) {
                 in 0 .. 49 -> display(msg.what / 10, (msg.what % 10))
-                in 50 .. 59 -> { // receive opponent dice
-                    val index = msg.what - 50
-                    if (index < 5) {
-                        setDice(false, index)
-                    } else {
-                        setDice(true, index - 5)
-                    }
-                }
-                65 -> {
+                in 50 .. 54 -> setDice(false, msg.what - 50)
+                in 55 .. 59 -> setDice(true, msg.what - 55)
+                60 -> response()
+                61 -> {
                     U.toast(this@GameActivity, "후공입니다.")
-                    clearDice(first = true)
+                    notice.text = "상대의 차례입니다."
+                    clearDice()
+                    btnScore.isEnabled = true
                 }
                 69 -> {
                     U.toast(this@GameActivity, "선공입니다.")
                     isMyTurn = true
                     isThrowable = true
-                    clearDice(first = true)
-                    setBtn(true)
+                    clearDice()
+                    btnScore.isEnabled = true
+                    setBtn()
                 }
-                70 -> { // inform that my turn is ready
+                70 -> {
+                    if (isMyTurn) {
+                        setBtn()
+                        isThrowable = true
+                    } else {
+                        notice.text = "상대의 차례입니다."
+                        U.send(70)
+                    }
+                }
+                in 101 .. 119 -> {
+                    val int = msg.what - 100
+                    setScore(int / 10, int % 10, true)
+                }
+                120 -> {
+                    if (isMyTurn) setBtn() else {
+                        clearDice()
+                        initScore(true)
+                        U.send(120)
+                    }
+                }
+//                200 -> errAlert("서버와의 연결이 끊어졌습니다.").show()
+                201 -> errAlert("상대가 게임을 떠났습니다.").show()
+                255 -> {
                     if (btnScore.isEnabled) {
                         if (isMyTurn) {
-                            notice.text = "상대의 차례입니다."
+                            notice.text = if (--remain > 0) {
+                                btnConfirm.also { it.text = "선택 완료" }.isEnabled = true
+                                "남은 기회 : ${remain}회"
+                            } else "점수표에서 획득할 점수를 선택하세요."
                         } else {
-                            remain = 3
-                            isThrowable = true
-                            setBtn(true)
+                            calculate(true)
+                            U.send(255)
                         }
-                        isMyTurn = !isMyTurn
-                    } else setBtn(true, wait = true)
+                    } else setBtn()
                 }
-                200 -> errAlert("상대가 게임을 떠났습니다.").show()
-                201 -> errAlert("서버와의 연결이 끊어졌습니다.").show()
                 else -> TODO("error dialog")
             }
         }
@@ -227,7 +289,7 @@ class GameActivity: AppCompatActivity() {
         U.receive()
         time.max = 60
         clearDice()
-        setBtn(false, wait = true)
+        response()
 
         with (btnScore) {
             setOnClickListener {
@@ -247,17 +309,15 @@ class GameActivity: AppCompatActivity() {
             if (!isMyTurn && !isThrowable) {
                 shuffle()
                 showAll(first = true)
-                setBtn(false, wait = true)
-                U.send(70 + dice.sum())
+                response(70 + dice.sum())
             } else {
                 if (isThrowable) {
                     shuffle()
                     calculate()
                     showAll()
-                    setBtn(false, --remain == 0)
                 } else {
-                    setBtn(true)
-                    clearDice()
+                    initScore()
+                    response(120)
                 }
                 isThrowable = !isThrowable
             }

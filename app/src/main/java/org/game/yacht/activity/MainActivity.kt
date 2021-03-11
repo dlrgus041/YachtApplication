@@ -57,7 +57,7 @@ class MainActivity: AppCompatActivity() {
                     status.text = "대결 상대를 찾고 있습니다..."
                 }
                 2, 3 -> {
-                    U.player = msg.what - 2
+                    U.player = msg.what - 1
                     progress.visibility = View.INVISIBLE
                     connect.isEnabled = true
                     connect.text = "연결"
