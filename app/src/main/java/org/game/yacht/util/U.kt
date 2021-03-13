@@ -2,7 +2,9 @@ package org.game.yacht.util
 
 import android.content.Context
 import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
+import org.game.yacht.network.Receiver
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -15,6 +17,8 @@ object U {
     lateinit var mHdl: Handler
     lateinit var gHdl: Handler
 
+    val input = Receiver().apply { isDaemon = true }
+
     var player = -1
 
     fun random() = 1 + (6 * Math.random()).toInt()
@@ -24,33 +28,7 @@ object U {
 
     fun toast(context: Context, str: String) = Toast.makeText(context, str, Toast.LENGTH_SHORT).show()
 
-    fun find() = Thread {
-        try {
-            when (val int = `in`.read()) {
-                -1 -> handle(mHdl, -1)
-                2, 3 -> handle(mHdl, int)
-                else -> throw IOException()
-            }
-        } catch (_: Exception) {
-            handle(mHdl, -1)
-        }
-    }.start()
-
     fun send(int: Int) = Thread { out.write(int) }.start()
-
-    fun receive() = Thread {
-        try {
-            while (true) {
-                when (val int = `in`.read()) {
-                    -1 -> throw IOException()
-                    else -> handle(gHdl, int)
-                }
-            }
-        } catch (_: IOException) {
-            close()
-//            handle(gHdl, 201)
-        }
-    }.also {it.isDaemon = true}.start()
 
     fun close() {
         `in`.close()

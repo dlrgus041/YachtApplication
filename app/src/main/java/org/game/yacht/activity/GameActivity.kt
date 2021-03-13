@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Message
 import android.view.View
+import android.view.WindowInsetsController
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.get
@@ -31,7 +32,7 @@ class GameActivity: AppCompatActivity() {
     private val time by lazy { findViewById<CircleProgressBar>(R.id.time) }
 
     private val level = arrayOf(
-            "", "Aces", "Dueces", "Threes", "Fours", "Fives", "Sixes",
+            "", "Aces", "Deuces", "Threes", "Fours", "Fives", "Sixes",
             "Choice", "4 of a Kind", "Full House", "S. Straight", "L. Straight", "Yacht"
     )
 
@@ -66,24 +67,16 @@ class GameActivity: AppCompatActivity() {
         }
     }
 
-    private fun initScore(opponent: Boolean = false) {
-        for (board in 0..1) {
-            for (index in 1..6) setScore(board, index, opponent, true)
-        }
+    private fun hintScore(table: Int, index: Int, value: Any, opponent: Boolean) {
+        (((scoreboard[table] as TableLayout)[if (opponent) 3 - U.player else U.player] as TableRow)[index] as TextView).hint = value.toString()
     }
 
-    private fun hintScore(table: TableLayout, category: Int, value: Int, opponent: Boolean) {
-        ((table[if (opponent) (U.player + 1) % 2 else U.player] as TableRow)[category] as TextView).hint = value.toString()
-    }
-
-    private fun setScore(board: Int, index: Int, opponent: Boolean = false, init : Boolean = false) =
+    private fun setScore(board: Int, index: Int, opponent: Boolean = false) =
             with(((scoreboard[board] as TableLayout)[if (opponent) 3 - U.player else U.player] as TableRow)[index] as TextView) {
-                text = if (init) "0" else {
-                    response(if (opponent) 70 else (100 + 10 * board + index))
-                    initialize()
-                    isMyTurn = !isMyTurn
-                    hint
-                }
+                text = hint
+                response(if (opponent) 70 else (100 + 10 * board + index))
+                initialize()
+                isMyTurn = !isMyTurn
             }
 
     private fun judge(): Int {
@@ -104,19 +97,15 @@ class GameActivity: AppCompatActivity() {
         return ret
     }
 
-    private fun calculate(opponent: Boolean = false) {
-        with(scoreboard[0] as TableLayout) {
-            for (i in 1..6) hintScore(this, i, dice.filter { it == i }.sum(), opponent)
-        }
+    private fun calculate(opponent: Boolean = false, clear: Boolean = false) {
+        for (i in 1..6) hintScore(1, i, if (clear) "" else dice.filter { it == i }.sum(), opponent)
         val mask = judge()
-        with(scoreboard[1] as TableLayout) {
-            hintScore(this, 1, dice.sum(), opponent)
-            hintScore(this, 2, if (mask and FOUR_CARD != 0) dice.sum() else 0, opponent)
-            hintScore(this, 3, if (mask and FULL_HOUSE != 0) dice.sum() else 0, opponent)
-            hintScore(this, 4, if (mask and S_STRAIGHT != 0) 15 else 0, opponent)
-            hintScore(this, 5, if (mask and L_STRAIGHT != 0) 30 else 0, opponent)
-            hintScore(this, 6, if (mask and YACHT != 0) dice.sum() else 0, opponent)
-        }
+        hintScore(2, 1, dice.sum(), opponent)
+        hintScore(2, 2, if (clear) "" else if (mask and FOUR_CARD != 0) dice.sum() else 0, opponent)
+        hintScore(2, 3, if (clear) "" else if (mask and FULL_HOUSE != 0) dice.sum() else 0, opponent)
+        hintScore(2, 4, if (clear) "" else if (mask and S_STRAIGHT != 0) 15 else 0, opponent)
+        hintScore(2, 5, if (clear) "" else if (mask and L_STRAIGHT != 0) 30 else 0, opponent)
+        hintScore(2, 6, if (clear) "" else if (mask and YACHT != 0) dice.sum() else 0, opponent)
     }
 
     private fun clearDice() {
@@ -180,51 +169,65 @@ class GameActivity: AppCompatActivity() {
     private fun errAlert(message: String) = AlertDialog.Builder(this).setTitle("알림")
             .setMessage(message).setNeutralButton("확인") { _, _ -> }.create()
 
+//    override fun onWindowFocusChanged(hasFocus: Boolean) {
+//        if (hasFocus) {
+//            window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+//                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+//                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+//                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+//                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+//                    or View.SYSTEM_UI_FLAG_FULLSCREEN
+//                    )
+//        }
+//    }.
+
     override fun onBackPressed() = exitGame.show()
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
-        window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                 or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                 or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_FULLSCREEN
                 )
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) = with (U) {
+        super.onCreate(savedInstanceState)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
         setContentView(R.layout.activity_game)
 
-        for (board in 0 .. 1) {
+        for (board in 1 .. 2) {
             for (index in 1 .. 6) {
-                    with (((scoreboard[board] as TableLayout)[U.player] as TableRow)[index] as TextView) {
-                        setOnClickListener {
-                            if (isMyTurn && !isThrowable) scoreDialog
-                                    .apply { setTitle("${level[(board + 1) * index]} ${hint}점을 획득하시겠습니까?") }
-                                    .apply { setButton(AlertDialog.BUTTON_POSITIVE, "예") {_, _ -> setScore(board, index) } }
-                                    .show()
-
-                        }
+                with(((scoreboard[board] as TableLayout)[player] as TableRow)[index] as TextView) {
+                    setOnClickListener {
+                        if (isMyTurn && !isThrowable) scoreDialog.apply {
+                            setTitle("${level[6 * (board - 1) + index]} ${hint}점을 획득하시겠습니까?")
+                            setButton(AlertDialog.BUTTON_POSITIVE, "예") { _, _ -> setScore(board, index) }
+                        }.show()
                     }
+                }
             }
         }
 
         for (i in 0 .. 6)
             img[i] = resources.getIdentifier("dice$i", "drawable", packageName)
 
-        U.gHdl = object : Handler(Looper.getMainLooper()) {
+        gHdl = object : Handler(Looper.getMainLooper()) {
             override fun handleMessage(msg: Message): Unit = when (msg.what) {
                 in 0 .. 49 -> display(msg.what / 10, (msg.what % 10))
                 in 50 .. 54 -> setDice(false, msg.what - 50)
                 in 55 .. 59 -> setDice(true, msg.what - 55)
                 60 -> response()
                 61 -> {
-                    U.toast(this@GameActivity, "후공입니다.")
+                    toast(this@GameActivity, "후공입니다.")
                     notice.text = "상대의 차례입니다."
                     clearDice()
                     btnScore.isEnabled = true
                 }
                 69 -> {
-                    U.toast(this@GameActivity, "선공입니다.")
+                    toast(this@GameActivity, "선공입니다.")
                     isMyTurn = true
                     isThrowable = true
                     clearDice()
@@ -237,18 +240,21 @@ class GameActivity: AppCompatActivity() {
                         isThrowable = true
                     } else {
                         notice.text = "상대의 차례입니다."
-                        U.send(70)
+                        send(70)
                     }
                 }
-                in 101 .. 119 -> {
+                in 111 .. 129 -> {
                     val int = msg.what - 100
                     setScore(int / 10, int % 10, true)
                 }
-                120 -> {
-                    if (isMyTurn) setBtn() else {
+                130 -> {
+                    if (isMyTurn) {
+                        isThrowable = false
+                        setBtn()
+                    } else {
                         clearDice()
-                        initScore(true)
-                        U.send(120)
+                        calculate(true, clear = true)
+                        send(130)
                     }
                 }
 //                200 -> errAlert("서버와의 연결이 끊어졌습니다.").show()
@@ -262,7 +268,7 @@ class GameActivity: AppCompatActivity() {
                             } else "점수표에서 획득할 점수를 선택하세요."
                         } else {
                             calculate(true)
-                            U.send(255)
+                            send(255)
                         }
                     } else setBtn()
                 }
@@ -274,19 +280,19 @@ class GameActivity: AppCompatActivity() {
             fixed[i].visibility = View.GONE
             roll[i].setOnClickListener {
                 if (isMyTurn && !isThrowable && (it.visibility == View.VISIBLE)) {
-                    U.send(55 + i)
+                    send(55 + i)
                     setDice(true, i)
                 }
             }
             fixed[i].setOnClickListener {
                 if (isMyTurn && !isThrowable && (it.visibility == View.VISIBLE)) {
-                    U.send(50 + i)
+                    send(50 + i)
                     setDice(false, i)
                 }
             }
         }
 
-        U.receive()
+        input.handler = gHdl
         time.max = 60
         clearDice()
         response()
@@ -315,11 +321,11 @@ class GameActivity: AppCompatActivity() {
                     shuffle()
                     calculate()
                     showAll()
+                    isThrowable = false
                 } else {
-                    initScore()
-                    response(120)
+                    calculate(clear = true)
+                    response(130)
                 }
-                isThrowable = !isThrowable
             }
         }
     }

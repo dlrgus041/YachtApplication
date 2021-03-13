@@ -28,64 +28,80 @@ class MainActivity: AppCompatActivity() {
                 .setNegativeButton("아니오") { _, _ -> }.create()
     }
 
+//    private val findMatch by lazy {
+//        AlertDialog.Builder(this).setTitle("알림").setMessage("상대를 찾았습니다.")
+//                .setPositiveButton("예") {_, _ ->
+//                    U.send(251)
+//                    input.interrupt()
+//                    progress.visibility = View.INVISIBLE
+//                    connect.isEnabled = true
+//                    connect.text = "연결"
+//                    startActivity(Intent(this@MainActivity, GameActivity::class.java))
+//                }.setNegativeButton("아니오") {_, _ ->
+//                    U.send(252)
+//                    U.player = -1
+//                    status.text = "대결 상대를 찾고 있습니다..."
+//                }.create()
+//    }
+
     override fun onBackPressed() = exitMain.show()
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) = with (U) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        U.mHdl = object: Handler(Looper.getMainLooper()) {
+        mHdl = object: Handler(Looper.getMainLooper()) {
             override fun handleMessage(msg: Message) = when (msg.what) {
                 -1 -> {
-                    if (isSocket) U.close()
+                    if (isSocket) close()
                     connect.text = "사용할 별명을 입력하고\n'연결' 버튼을 누르세요."
                     connect.isEnabled = true
                     progress.visibility = View.INVISIBLE
                     connect.text = "연결"
-                    U.toast(this@MainActivity, "오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+                    toast(this@MainActivity, "오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
                     isSocket = false
                 }
-                0 -> {
-                    status.text = "서버에 연결 중 입니다..."
-                    progress.visibility = View.VISIBLE
-                    name.isEnabled = false
-                    connect.isEnabled = false
-                    connect.text = "대기"
-                }
-                1 -> {
-                    U.find()
-                    status.text = "대결 상대를 찾고 있습니다..."
-                }
-                2, 3 -> {
-                    U.player = msg.what - 1
+                0, 1 -> {
+                    player = 1 + msg.what
+//                    findMatch.show()
                     progress.visibility = View.INVISIBLE
                     connect.isEnabled = true
                     connect.text = "연결"
                     startActivity(Intent(this@MainActivity, GameActivity::class.java))
                 }
 
-                else -> U.toast(this@MainActivity, Error.UNDEFINED_ERROR.ex)
+                2 -> {
+                    status.text = "서버에 연결 중 입니다..."
+                    progress.visibility = View.VISIBLE
+                    name.isEnabled = false
+                    connect.isEnabled = false
+                    connect.text = "대기"
+                }
+                3 -> status.text = "대결 상대를 찾고 있습니다..."
+
+                else -> toast(this@MainActivity, Error.UNDEFINED_ERROR.ex)
             }
         }
 
         connect.setOnClickListener {
 //            startActivity(Intent(this@MainActivity, GameActivity::class.java))
             if (name.text.isEmpty()) {
-                U.toast(this, "별명을 입력해주세요.")
+                toast(this@MainActivity, "별명을 입력해주세요.")
                 return@setOnClickListener
             }
-            U.handle(U.mHdl, 0)
+            handle(mHdl, 2)
             Thread {
                 try {
                     val socket = Socket("59.12.69.90", 52190)
-                    U.`in` = socket.getInputStream()
-                    U.out = socket.getOutputStream()
+                    `in` = socket.getInputStream()
+                    out = socket.getOutputStream()
+                    input.apply { handler = mHdl }.start()
                     isSocket = true
 
-                    U.out.write(name.text.toString().encodeToByteArray())
-                    U.handle(U.mHdl, 1)
+                    out.write(name.text.toString().encodeToByteArray())
+                    handle(mHdl, 3)
                 } catch (_: Exception) {
-                    U.handle(U.mHdl, -1)
+                    handle(mHdl, -1)
                 }
             }.start()
         }
