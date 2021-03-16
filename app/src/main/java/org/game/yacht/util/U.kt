@@ -11,15 +11,18 @@ import java.io.OutputStream
 
 object U {
 
+    const val YACHT = 16
+    const val FOUR_CARD = 8
+    const val FULL_HOUSE = 4
+    const val L_STRAIGHT = 2
+    const val S_STRAIGHT = 1
+
     lateinit var `in`: InputStream
     lateinit var out: OutputStream
 
     lateinit var mHdl: Handler
     lateinit var gHdl: Handler
-
     val input = Receiver().apply { isDaemon = true }
-
-    var player = -1
 
     fun random() = 1 + (6 * Math.random()).toInt()
 

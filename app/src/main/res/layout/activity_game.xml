@@ -86,30 +86,35 @@
                     android:layout_height="120dp"
                     android:layout_margin="10dp"
                     android:scaleType="centerCrop"
-                    android:src="@drawable/dice0" />
+                    android:src="@drawable/dice0"
+                    android:visibility="invisible"/>
                 <ImageView
                     android:layout_width="120dp"
                     android:layout_height="120dp"
                     android:src="@drawable/dice0"
                     android:scaleType="centerCrop"
+                    android:visibility="invisible"
                     android:layout_margin="10dp"/>
                 <ImageView
                     android:layout_width="120dp"
                     android:layout_height="120dp"
                     android:src="@drawable/dice0"
                     android:scaleType="centerCrop"
+                    android:visibility="invisible"
                     android:layout_margin="10dp"/>
                 <ImageView
                     android:layout_width="120dp"
                     android:layout_height="120dp"
                     android:src="@drawable/dice0"
                     android:scaleType="centerCrop"
+                    android:visibility="invisible"
                     android:layout_margin="10dp"/>
                 <ImageView
                     android:layout_width="120dp"
                     android:layout_height="120dp"
                     android:src="@drawable/dice0"
                     android:scaleType="centerCrop"
+                    android:visibility="invisible"
                     android:layout_margin="10dp"/>
             </LinearLayout>
         </LinearLayout>
@@ -120,7 +125,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:visibility="visible">
+            android:visibility="invisible">
 
             <TableLayout
                 android:layout_width="match_parent"
@@ -466,7 +471,7 @@
                     <TextView
                         android:layout_height="match_parent"
                         android:layout_width="match_parent"
-                        android:text="Four Card"
+                        android:text="4 of a Kind"
                         android:textSize="20sp"
                         android:layout_weight="1"
                         android:gravity="center"

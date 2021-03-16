@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:text="사용할 별명을 입력하고\n원하는 버튼을 눌러주세요."
         android:gravity="center"
-        android:textSize="35sp"
+        android:textSize="30sp"
         app:layout_constraintBottom_toTopOf="@id/name"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
@@ -26,18 +26,60 @@
         android:textSize="30sp"
         android:gravity="center"
         app:layout_constraintTop_toBottomOf="@id/status"
-        app:layout_constraintBottom_toTopOf="@id/connect"/>
+        app:layout_constraintBottom_toTopOf="@id/mainBtns"
+        android:imeOptions="actionDone"/>
 
-    <Button
-        android:id="@+id/connect"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:id="@+id/mainBtns"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="빠른 시작"
-        android:textSize="30sp"
+        android:orientation="vertical"
+        android:gravity="center"
         app:layout_constraintBottom_toTopOf="@id/progress"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/name"/>
+        app:layout_constraintTop_toBottomOf="@id/name" >
+        <Button
+            android:id="@+id/quickStart"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="빠른 시작"
+            android:textSize="30sp"
+            app:layout_constraintBottom_toTopOf="@id/makeRoom"
+            app:layout_constraintVertical_chainStyle="packed"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/name"
+            android:layout_margin="10dp"/>
+
+        <Button
+            android:id="@+id/makeRoom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="방 만들기"
+            android:textSize="30sp"
+            app:layout_constraintBottom_toTopOf="@id/quickStart"
+            app:layout_constraintVertical_chainStyle="packed"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/inviteFriend"
+            android:layout_margin="10dp"
+            android:enabled="false"/>
+
+        <Button
+            android:id="@+id/inviteFriend"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="친구 초대"
+            android:textSize="30sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintVertical_chainStyle="packed"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/makeRoom"
+            android:layout_margin="10dp"
+            android:enabled="false"/>
+    </LinearLayout>
 
     <ProgressBar
         android:id="@+id/progress"
@@ -46,7 +88,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/connect"
+        app:layout_constraintTop_toBottomOf="@id/mainBtns"
         android:visibility="invisible"/>
 
 

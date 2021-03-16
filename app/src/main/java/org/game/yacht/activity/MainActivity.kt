@@ -18,7 +18,7 @@ class MainActivity: AppCompatActivity() {
 
     private val status by lazy { findViewById<TextView>(R.id.status) }
     private val name by lazy { findViewById<EditText>(R.id.name) }
-    private val connect by lazy {findViewById<Button>(R.id.connect) }
+    private val quickStart by lazy {findViewById<Button>(R.id.quickStart) }
     private val progress by lazy { findViewById<ProgressBar>(R.id.progress) }
     private var isSocket = false
 
@@ -46,6 +46,15 @@ class MainActivity: AppCompatActivity() {
 
     override fun onBackPressed() = exitMain.show()
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_FULLSCREEN)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) = with (U) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -54,42 +63,46 @@ class MainActivity: AppCompatActivity() {
             override fun handleMessage(msg: Message) = when (msg.what) {
                 -1 -> {
                     if (isSocket) close()
-                    connect.text = "사용할 별명을 입력하고\n'연결' 버튼을 누르세요."
-                    connect.isEnabled = true
+                    quickStart.text = "사용할 별명을 입력하고\n'연결' 버튼을 누르세요."
+                    quickStart.isEnabled = true
                     progress.visibility = View.INVISIBLE
-                    connect.text = "연결"
-                    toast(this@MainActivity, "오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+                    quickStart.text = "연결"
+                    toast(this@MainActivity, "mHdl - (-1)")
                     isSocket = false
                 }
-                0, 1 -> {
-                    player = 1 + msg.what
+                101, 102 -> {
 //                    findMatch.show()
                     progress.visibility = View.INVISIBLE
-                    connect.isEnabled = true
-                    connect.text = "연결"
-                    startActivity(Intent(this@MainActivity, GameActivity::class.java))
+                    quickStart.isEnabled = true
+                    quickStart.text = "연결"
+                    startActivity(Intent(this@MainActivity, GameActivity::class.java)
+                            .apply {
+                                putExtra("myName", name.text.toString())
+                                putExtra("opName", msg.obj as String)
+                                putExtra("player", msg.what - 100)
+                            }
+                    )
                 }
-
-                2 -> {
+                103 -> {
                     status.text = "서버에 연결 중 입니다..."
                     progress.visibility = View.VISIBLE
                     name.isEnabled = false
-                    connect.isEnabled = false
-                    connect.text = "대기"
+                    quickStart.isEnabled = false
+                    quickStart.text = "대기"
                 }
-                3 -> status.text = "대결 상대를 찾고 있습니다..."
+                104 -> status.text = "대결 상대를 찾고 있습니다..."
 
-                else -> toast(this@MainActivity, Error.UNDEFINED_ERROR.ex)
+                else -> toast(this@MainActivity, "mHdl - 정의되지 않은 코드 (${msg.what})")
             }
         }
 
-        connect.setOnClickListener {
+        quickStart.setOnClickListener {
 //            startActivity(Intent(this@MainActivity, GameActivity::class.java))
             if (name.text.isEmpty()) {
                 toast(this@MainActivity, "별명을 입력해주세요.")
                 return@setOnClickListener
             }
-            handle(mHdl, 2)
+            handle(mHdl, 103)
             Thread {
                 try {
                     val socket = Socket("59.12.69.90", 52190)
@@ -99,9 +112,9 @@ class MainActivity: AppCompatActivity() {
                     isSocket = true
 
                     out.write(name.text.toString().encodeToByteArray())
-                    handle(mHdl, 3)
-                } catch (_: Exception) {
-                    handle(mHdl, -1)
+                    handle(mHdl, 104)
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }.start()
         }
